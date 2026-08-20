@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0D0D0D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PDV Gorjeta">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>La Traviata — PDV</title>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+:root {
+  --bg:#0D0D0D; --s1:#161616; --border:#2C2C2C;
+  --muted:#555; --text:#EDEDED; --dim:#777;
+  --gold:#C9973A; --gold-l:rgba(201,151,58,.18);
+  --par:#1A5276; --par-l:rgba(26,82,118,.22); --par-t:#7FB3D3;
+  --imp:#4A235A; --imp-l:rgba(74,35,90,.22);  --imp-t:#C39BD3;
+  --green:#1E8449; --green-l:rgba(30,132,73,.18); --green-t:#58D68D;
+  --r:10px; --font:'SF Pro Display','Segoe UI',system-ui,sans-serif;
+}
+body { font-family:var(--font); background:var(--bg); color:var(--text);
+  min-height:100vh; max-width:440px; margin:0 auto; padding:16px 14px 60px;
+  padding-top: max(16px, env(safe-area-inset-top)); }
+
+.topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+.brand  { font-size:12px; color:var(--dim); letter-spacing:.12em; text-transform:uppercase; }
+.week-label { font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px;
+  background:var(--gold-l); color:var(--gold); border:1px solid var(--gold); }
+.save-dot { width:8px; height:8px; border-radius:50%; background:var(--green);
+  display:inline-block; margin-left:5px; vertical-align:middle;
+  box-shadow:0 0 5px var(--green); transition:all .3s; }
+.save-dot.unsaved { background:#C0392B; box-shadow:0 0 5px #C0392B; }
+
+.date-row { display:grid; grid-template-columns:2fr 2fr 3fr; gap:8px; margin-bottom:14px; }
+.date-row select { background:var(--s1); color:var(--text); border:1px solid var(--border);
+  border-radius:8px; padding:10px 8px; font-size:14px; text-align:center;
+  -webkit-appearance:none; outline:none; cursor:pointer; width:100%; }
+
+.equipe-bar { display:flex; align-items:center; gap:10px; padding:10px 14px;
+  border-radius:var(--r); margin-bottom:14px; font-size:12px; font-weight:600; transition:all .3s; }
+.equipe-bar.par { background:var(--par-l); border:1px solid var(--par); color:var(--par-t); }
+.equipe-bar.imp { background:var(--imp-l); border:1px solid var(--imp); color:var(--imp-t); }
+.eq-label { opacity:.6; font-weight:400; }
+.turno-pill { margin-left:auto; font-size:10px; font-weight:700; padding:3px 9px;
+  border-radius:20px; letter-spacing:.08em; }
+.turno-pill.dia   { background:var(--gold-l); color:var(--gold); border:1px solid var(--gold); }
+.turno-pill.noite { background:rgba(21,67,96,.4); color:#5DADE2; border:1px solid var(--par); }
+
+.input-block { margin-bottom:16px; }
+.field-label { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.1em; margin-bottom:6px; }
+.total-wrap { position:relative; }
+.total-wrap .pfx { position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:18px; color:var(--gold); }
+#totalInput { width:100%; padding:18px 14px 18px 42px; background:#111; color:var(--text);
+  border:2px solid var(--gold); border-radius:var(--r); font-size:34px; font-weight:800;
+  letter-spacing:-.03em; outline:none; -webkit-appearance:none; }
+#totalInput::placeholder { color:#333; }
+
+.cfg-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+.cfg-card { background:var(--s1); border:1px solid var(--border); border-radius:var(--r); padding:12px; }
+.cfg-card .field-label { margin-bottom:8px; }
+.btn-group { display:flex; gap:5px; flex-wrap:wrap; }
+.seg-btn { flex:1; min-width:26px; padding:8px 2px; border-radius:7px;
+  border:1px solid var(--border); background:transparent; color:var(--dim);
+  font-size:13px; font-weight:700; cursor:pointer; transition:all .15s; }
+.seg-btn.on-div { background:var(--gold-l); border-color:var(--gold); color:var(--gold); }
+.seg-btn.on-pct { background:var(--green-l); border-color:var(--green); color:var(--green-t); }
+
+.result-card { background:var(--s1); border:1px solid var(--border); border-radius:var(--r);
+  overflow:hidden; margin-bottom:14px; }
+.result-top { display:flex; justify-content:space-between; align-items:baseline;
+  padding:13px 14px 11px; border-bottom:1px solid var(--border); }
+.result-top .rl { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.1em; }
+.result-top .rv { font-size:22px; font-weight:700; }
+.result-top .rv .p { font-size:12px; color:var(--dim); margin-right:2px; }
+.result-big { display:flex; justify-content:space-between; align-items:center; padding:14px; }
+.result-big .rl { font-size:12px; color:var(--dim); }
+.big-val { font-size:44px; font-weight:900; letter-spacing:-.04em; color:var(--gold); line-height:1; }
+.big-val .p { font-size:20px; color:var(--dim); font-weight:400; margin-right:2px; }
+
+.garcons-section { margin-bottom:14px; }
+.garcons-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.garcons-header .field-label { margin-bottom:0; }
+.hint { font-size:10px; color:var(--muted); }
+.garcons-grid { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+.gc-btn { display:flex; align-items:center; justify-content:space-between;
+  padding:12px 13px; border-radius:var(--r); border:1px solid var(--border);
+  background:var(--s1); cursor:pointer; transition:all .15s; user-select:none; }
+.gc-btn:active { transform:scale(.97); }
+.gc-nome { font-size:13px; font-weight:600; }
+.gc-val  { font-size:15px; font-weight:800; }
+.gc-btn.presente.par { background:var(--par-l); border-color:var(--par); }
+.gc-btn.presente.par .gc-nome { color:var(--par-t); }
+.gc-btn.presente.par .gc-val  { color:var(--text); }
+.gc-btn.presente.imp { background:var(--imp-l); border-color:var(--imp); }
+.gc-btn.presente.imp .gc-nome { color:var(--imp-t); }
+.gc-btn.presente.imp .gc-val  { color:var(--text); }
+.gc-btn.ausente { opacity:.28; }
+.gc-btn.ausente .gc-val { color:var(--muted); font-size:11px; }
+
+.split-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; }
+.split-card { background:var(--s1); border:1px solid var(--border); border-radius:var(--r);
+  padding:11px 13px; text-align:center; }
+.split-card .sl { font-size:10px; color:var(--dim); text-transform:uppercase;
+  letter-spacing:.1em; margin-bottom:4px; }
+.split-card .sv { font-size:18px; font-weight:700; }
+.split-equipe .sv { color:var(--green-t); }
+.split-casa   .sv { color:var(--gold); }
+
+hr.div { border:none; border-top:1px solid var(--border); margin:16px 0; }
+
+.week-section { margin-bottom:16px; }
+.week-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.week-group { margin-bottom:10px; }
+.week-group-label { font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.08em; margin-bottom:6px; }
+.week-group-label.par { color:var(--par-t); }
+.week-group-label.imp { color:var(--imp-t); }
+.week-gc-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.week-gc { display:flex; align-items:center; justify-content:space-between;
+  padding:9px 12px; border-radius:8px; border:1px solid var(--border); }
+.week-gc.par { background:var(--par-l); border-color:var(--par); }
+.week-gc.imp { background:var(--imp-l); border-color:var(--imp); }
+.wgc-nome { font-size:12px; font-weight:600; }
+.wgc-nome.par { color:var(--par-t); }
+.wgc-nome.imp { color:var(--imp-t); }
+.wgc-val  { font-size:15px; font-weight:800; color:var(--text); }
+.wgc-val.zero { color:var(--muted); font-size:11px; }
+.week-totals { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px; }
+.week-total-card { background:var(--s1); border:1px solid var(--border); border-radius:8px; padding:10px 12px; }
+.wtc-label  { font-size:10px; text-transform:uppercase; letter-spacing:.08em; margin-bottom:3px; }
+.wtc-turnos { font-size:11px; color:var(--muted); }
+
+.btn-add { width:100%; padding:11px; border-radius:var(--r);
+  border:1px dashed var(--border); background:transparent; color:var(--dim);
+  font-size:13px; font-weight:600; cursor:pointer; margin-top:8px; }
+.btn-add:active { background:var(--s1); }
+
+.send-section { margin-bottom:16px; }
+.send-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.send-btn { padding:13px 8px; border-radius:var(--r); border:none; font-size:13px;
+  font-weight:700; cursor:pointer; transition:opacity .15s; }
+.send-btn:active { opacity:.75; }
+.send-par { background:var(--par); color:#fff; }
+.send-imp { background:var(--imp); color:#fff; }
+.send-all { background:var(--gold); color:#000; grid-column:span 2; }
+
+.actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.btn-action { padding:13px; border-radius:var(--r); font-size:13px; font-weight:700; cursor:pointer; border:none; }
+.btn-clear      { background:var(--s1); color:var(--dim); border:1px solid var(--border); }
+.btn-reset-week { background:#1A1A1A; color:#C0392B; border:1px solid rgba(192,57,43,.3); font-size:12px; }
+
+.saved-bar { text-align:center; margin-top:14px; font-size:10px; color:var(--muted); }
+.saved-bar .ok { color:var(--green-t); }
+
+.toast { position:fixed; bottom:max(20px, env(safe-area-inset-bottom));
+  left:50%; transform:translateX(-50%) translateY(60px);
+  background:var(--green); color:#fff; padding:10px 22px; border-radius:24px;
+  font-size:13px; font-weight:700; transition:transform .3s; z-index:999; white-space:nowrap; }
+.toast.show { transform:translateX(-50%) translateY(0); }
+
+/* Banner instalar no iPhone */
+.install-hint { display:none; background:var(--s1); border:1px solid var(--border);
+  border-radius:var(--r); padding:12px 14px; margin-bottom:14px;
+  font-size:12px; color:var(--dim); line-height:1.5; }
+.install-hint strong { color:var(--gold); }
+.install-hint.show { display:block; }
+</style>
+</head>
+<body>
+
+<!-- Banner de instalação para iOS -->
+<div class="install-hint" id="installHint">
+  Para instalar como app: toque em <strong>Compartilhar</strong> → <strong>Adicionar à Tela de Início</strong>
+</div>
+
+<div class="topbar">
+  <div class="brand">🍷 La Traviata</div>
+  <div id="weekLabel" class="week-label">SEM — <span class="save-dot" id="saveDot"></span></div>
+</div>
+
+<div class="date-row">
+  <select id="selDia" onchange="onDateChange()"></select>
+  <select id="selMes" onchange="onMesChange()">
+    <option value="7">Jul</option><option value="8" selected>Ago</option>
+    <option value="9">Set</option><option value="10">Out</option>
+    <option value="11">Nov</option><option value="12">Dez</option>
+  </select>
+  <select id="selTurno" onchange="onTurnoChange()">
+    <option value="DIA">☀️  DIA</option>
+    <option value="NOITE">🌙  NOITE</option>
+  </select>
+</div>
+
+<div class="equipe-bar par" id="equipeBar">
+  <span class="eq-label">equipe</span>
+  <span id="equipeNomes">—</span>
+  <span class="turno-pill dia" id="turnoPill">DIA</span>
+</div>
+
+<div class="input-block">
+  <div class="field-label">Total da venda (R$)</div>
+  <div class="total-wrap">
+    <span class="pfx">R$</span>
+    <input type="number" id="totalInput" inputmode="decimal"
+           placeholder="0,00" step="0.01" min="0" oninput="calcular()">
+  </div>
+</div>
+
+<div class="cfg-row">
+  <div class="cfg-card">
+    <div class="field-label">÷ Presentes (auto)</div>
+    <div class="btn-group" id="divBtns"></div>
+  </div>
+  <div class="cfg-card">
+    <div class="field-label">Base %</div>
+    <div class="btn-group" id="pctBtns">
+      <button class="seg-btn on-pct" data-v="70" onclick="setPct(70)">70%</button>
+      <button class="seg-btn"        data-v="60" onclick="setPct(60)">60%</button>
+    </div>
+  </div>
+</div>
+
+<div class="result-card">
+  <div class="result-top">
+    <span class="rl">Gorjeta bruta (<span id="pctLabel">70</span>%)</span>
+    <span class="rv"><span class="p">R$</span><span id="gorjetaBruta">0,00</span></span>
+  </div>
+  <div class="result-big">
+    <span class="rl">Cada presente recebe</span>
+    <span class="big-val"><span class="p">R$</span><span id="porGarcom">0,00</span></span>
+  </div>
+</div>
+
+<div class="garcons-section">
+  <div class="garcons-header">
+    <div class="field-label">Garçons — toque para marcar ausência</div>
+    <div class="hint" id="presenteCount">4 presentes</div>
+  </div>
+  <div class="garcons-grid" id="garconsGrid"></div>
+</div>
+
+<div class="split-row">
+  <div class="split-card split-equipe">
+    <div class="sl">Equipe</div>
+    <div class="sv" id="splitEquipe">R$ 0,00</div>
+  </div>
+  <div class="split-card split-casa">
+    <div class="sl">Casa (30%)</div>
+    <div class="sv" id="splitCasa">R$ 0,00</div>
+  </div>
+</div>
+
+<hr class="div">
+
+<div class="week-section">
+  <div class="week-header">
+    <div class="field-label">Acumulado da semana</div>
+    <div class="hint" id="weekRange">—</div>
+  </div>
+  <div class="week-group">
+    <div class="week-group-label par">Grupo Par</div>
+    <div class="week-gc-grid" id="wkGridPar"></div>
+  </div>
+  <div class="week-group">
+    <div class="week-group-label imp">Grupo Ímpar</div>
+    <div class="week-gc-grid" id="wkGridImp"></div>
+  </div>
+  <div class="week-totals">
+    <div class="week-total-card">
+      <div class="wtc-label" style="color:var(--par-t)">Par</div>
+      <div class="wtc-turnos" id="wkParTurnos">0 turnos</div>
+    </div>
+    <div class="week-total-card">
+      <div class="wtc-label" style="color:var(--imp-t)">Ímpar</div>
+      <div class="wtc-turnos" id="wkImpTurnos">0 turnos</div>
+    </div>
+  </div>
+  <button class="btn-add" onclick="adicionarTurno()">＋ Adicionar este turno ao acumulado</button>
+</div>
+
+<div class="send-section">
+  <div class="field-label" style="margin-bottom:8px">Enviar resumo</div>
+  <div class="send-row">
+    <button class="send-btn send-par" onclick="enviar('par')">📤 Grupo Par</button>
+    <button class="send-btn send-imp" onclick="enviar('imp')">📤 Grupo Ímpar</button>
+    <button class="send-btn send-all" onclick="enviar('all')">📋 Resumo completo da semana</button>
+  </div>
+</div>
+
+<div class="actions">
+  <button class="btn-action btn-clear"      onclick="limpar()">✕ Limpar turno</button>
+  <button class="btn-action btn-reset-week" onclick="resetarSemana()">⚠ Zerar semana</button>
+</div>
+
+<div class="saved-bar" id="savedBar">dados salvos automaticamente no celular</div>
+<div class="toast" id="toast">✓</div>
+
+<script>
+const INICIO       = new Date(2026, 6, 1);
+const EQUIPE_PAR   = ["Romulo","Ermerindo","Breno","Wesley"];
+const EQUIPE_IMPAR = ["Gilcemar","Elton","Antonio","Delcino"];
+const TODOS        = [...EQUIPE_PAR,...EQUIPE_IMPAR];
+const STORE_KEY    = 'lt_pdv_v1';
+
+let divisor=4, basePct=70;
+let equipeAtiva=EQUIPE_IMPAR, presentes={};
+let estado={ semNum:null, acum:{}, parTurnos:0, impTurnos:0, turnos:[] };
+TODOS.forEach(n=>estado.acum[n]=0);
+
+// ── Persistência ──────────────────────────────
+function salvar(){
+  try{
+    localStorage.setItem(STORE_KEY,JSON.stringify(estado));
+    G('saveDot').classList.remove('unsaved');
+    const t=new Date();
+    G('savedBar').innerHTML=`<span class="ok">✓ salvo às ${t.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>`;
+  }catch(e){ G('savedBar').textContent='⚠ erro ao salvar'; }
+}
+
+function carregar(semNum){
+  try{
+    const raw=localStorage.getItem(STORE_KEY);
+    if(!raw)return false;
+    const s=JSON.parse(raw);
+    if(s.semNum===semNum){
+      estado=s;
+      TODOS.forEach(n=>{if(!(n in estado.acum))estado.acum[n]=0;});
+      return true;
+    }
+    return false;
+  }catch(e){return false;}
+}
+
+// ── Equipe / data ─────────────────────────────
+function G(id){return document.getElementById(id);}
+
+function offsetDia(mes,dia){
+  return Math.round((new Date(2026,mes-1,dia)-INICIO)/86400000);
+}
+function eqOff(off){return off%2===0?"Ímpar":"Par";}
+
+function detectarEquipe(){
+  const mes=parseInt(G('selMes').value), dia=parseInt(G('selDia').value);
+  const eq=eqOff(offsetDia(mes,dia));
+  equipeAtiva=eq==="Par"?EQUIPE_PAR:EQUIPE_IMPAR;
+  equipeAtiva.forEach(n=>{if(presentes[n]===undefined)presentes[n]=true;});
+  const ispar=equipeAtiva===EQUIPE_PAR;
+  G('equipeBar').className='equipe-bar '+(ispar?'par':'imp');
+  G('equipeNomes').textContent=equipeAtiva.join('  ·  ');
+  const si=semInfo(mes,dia);
+  G('weekLabel').innerHTML=`SEM ${si.num} <span class="save-dot" id="saveDot"></span>`;
+  G('weekRange').textContent=si.ini+' → '+si.fim;
+  estado.semNum=si.num;
+  const ok=carregar(si.num);
+  if(!ok){TODOS.forEach(n=>estado.acum[n]=0);estado.parTurnos=0;estado.impTurnos=0;estado.turnos=[];estado.semNum=si.num;}
+  buildDivBtns(); atualizarDivisor(); renderGarcons(); renderAcum(); calcular();
+}
+
+function semInfo(mes,dia){
+  const d=new Date(2026,mes-1,dia),dow=d.getDay(),desde=(dow+4)%7;
+  const ini=new Date(d-desde*86400000),fim=new Date(ini.getTime()+6*86400000);
+  const off=Math.round((ini-INICIO)/86400000),num=Math.max(1,Math.floor(off/7)+1);
+  const fd=dt=>String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0');
+  return{num,ini:fd(ini),fim:fd(fim)};
+}
+
+// ── Divisor ───────────────────────────────────
+function atualizarDivisor(){
+  setDiv(Math.max(1,equipeAtiva.filter(n=>presentes[n]!==false).length));
+}
+function buildDivBtns(){
+  const w=G('divBtns');w.innerHTML='';
+  for(let v=1;v<=6;v++){
+    const b=document.createElement('button');
+    b.className='seg-btn'+(v===divisor?' on-div':'');
+    b.dataset.v=v;b.textContent=v;b.onclick=()=>setDiv(v);w.appendChild(b);
+  }
+}
+function setDiv(v){
+  divisor=v;
+  document.querySelectorAll('#divBtns .seg-btn').forEach(b=>b.classList.toggle('on-div',parseInt(b.dataset.v)===v));
+  calcular();
+}
+function setPct(v){
+  basePct=v;
+  document.querySelectorAll('#pctBtns .seg-btn').forEach(b=>b.classList.toggle('on-pct',parseInt(b.dataset.v)===v));
+  G('pctLabel').textContent=v;calcular();
+}
+
+// ── Cálculo ───────────────────────────────────
+function calcular(){
+  const total=parseFloat(G('totalInput').value)||0;
+  const bruta=total*(basePct/100),porG=divisor>0?bruta/divisor:0;
+  G('gorjetaBruta').textContent=fmt(bruta);
+  G('porGarcom').textContent=fmt(porG);
+  G('splitEquipe').textContent='R$ '+fmt(bruta);
+  G('splitCasa').textContent='R$ '+fmt(total*0.3);
+  document.querySelectorAll('.gc-btn').forEach(btn=>{
+    const val=btn.querySelector('.gc-val');
+    val.textContent=presentes[btn.dataset.nome]!==false?'R$ '+fmt(porG):'ausente';
+  });
+}
+
+// ── Garçons ───────────────────────────────────
+function renderGarcons(){
+  const grid=G('garconsGrid');
+  const total=parseFloat(G('totalInput').value)||0;
+  const porG=divisor>0?total*(basePct/100)/divisor:0;
+  const ispar=equipeAtiva===EQUIPE_PAR,grupo=ispar?'par':'imp';
+  grid.innerHTML='';
+  equipeAtiva.forEach(nome=>{
+    const pres=presentes[nome]!==false;
+    const btn=document.createElement('button');
+    btn.className='gc-btn '+(pres?'presente':'ausente')+' '+grupo;
+    btn.dataset.nome=nome;
+    btn.innerHTML=`<span class="gc-nome">${nome}</span><span class="gc-val">${pres?'R$ '+fmt(porG):'ausente'}</span>`;
+    btn.onclick=()=>toggleGarcom(nome);
+    grid.appendChild(btn);
+  });
+  const qtd=equipeAtiva.filter(n=>presentes[n]!==false).length;
+  G('presenteCount').textContent=qtd+' presente'+(qtd!==1?'s':'');
+}
+function toggleGarcom(nome){
+  presentes[nome]=presentes[nome]===false?true:false;
+  atualizarDivisor();renderGarcons();calcular();
+}
+
+// ── Acumulado ─────────────────────────────────
+function adicionarTurno(){
+  const total=parseFloat(G('totalInput').value)||0;
+  if(!total){showToast('⚠ Digite o total primeiro');return;}
+  const bruta=total*(basePct/100),porG=divisor>0?bruta/divisor:0;
+  const ispar=equipeAtiva===EQUIPE_PAR;
+  const dia=G('selDia').value,mes=G('selMes').options[G('selMes').selectedIndex].text;
+  const turno=G('selTurno').value;
+  const presentesNeste=equipeAtiva.filter(n=>presentes[n]!==false);
+  const ausentesNeste=equipeAtiva.filter(n=>presentes[n]===false);
+  presentesNeste.forEach(n=>{estado.acum[n]=(estado.acum[n]||0)+porG;});
+  if(ispar)estado.parTurnos++;else estado.impTurnos++;
+  estado.turnos.push({dia,mes,turno,total,porG,ispar,presentes:[...presentesNeste],ausentes:[...ausentesNeste]});
+  salvar();renderAcum();showToast('✓ Turno salvo');
+}
+function renderAcum(){
+  ['Par','Imp'].forEach(g=>{
+    const eq=g==='Par'?EQUIPE_PAR:EQUIPE_IMPAR,cl=g.toLowerCase();
+    const grid=G('wkGrid'+g);grid.innerHTML='';
+    eq.forEach(nome=>{
+      const v=estado.acum[nome]||0,card=document.createElement('div');
+      card.className='week-gc '+cl;
+      card.innerHTML=`<span class="wgc-nome ${cl}">${nome}</span><span class="wgc-val ${v===0?'zero':''}">${'R$ '+fmt(v)}</span>`;
+      grid.appendChild(card);
+    });
+  });
+  G('wkParTurnos').textContent=estado.parTurnos+' turno'+(estado.parTurnos!==1?'s':'');
+  G('wkImpTurnos').textContent=estado.impTurnos+' turno'+(estado.impTurnos!==1?'s':'');
+}
+function resetarSemana(){
+  if(!confirm('Zerar todos os dados da semana?\nNão pode ser desfeito.'))return;
+  TODOS.forEach(n=>estado.acum[n]=0);
+  estado.parTurnos=0;estado.impTurnos=0;estado.turnos=[];
+  salvar();renderAcum();showToast('Semana zerada');
+}
+
+// ── Envio ─────────────────────────────────────
+function enviar(tipo){
+  const sem=G('weekLabel').textContent.replace(/\s+/g,' ').split('SEM')[1]?.trim().split(' ')[0]||'';
+  const range=G('weekRange').textContent,sep='─'.repeat(26);
+  let txt=`🍷 LA TRAVIATA — SEM ${sem} (${range})\n`;
+  if(tipo==='par'){
+    txt+=`GRUPO PAR\n${sep}\n`;
+    EQUIPE_PAR.forEach(n=>txt+=`${n.padEnd(14)} R$ ${fmt(estado.acum[n])}\n`);
+    txt+=`${sep}\n${estado.parTurnos} turno${estado.parTurnos!==1?'s':''} acumulados`;
+  }else if(tipo==='imp'){
+    txt+=`GRUPO ÍMPAR\n${sep}\n`;
+    EQUIPE_IMPAR.forEach(n=>txt+=`${n.padEnd(14)} R$ ${fmt(estado.acum[n])}\n`);
+    txt+=`${sep}\n${estado.impTurnos} turno${estado.impTurnos!==1?'s':''} acumulados`;
+  }else{
+    txt+='═'.repeat(26)+'\nGRUPO PAR\n';
+    EQUIPE_PAR.forEach(n=>txt+=`  ${n.padEnd(13)} R$ ${fmt(estado.acum[n])}\n`);
+    txt+='GRUPO ÍMPAR\n';
+    EQUIPE_IMPAR.forEach(n=>txt+=`  ${n.padEnd(13)} R$ ${fmt(estado.acum[n])}\n`);
+    txt+='═'.repeat(26)+'\n';
+    if(estado.turnos.length){
+      txt+='Detalhamento:\n';
+      estado.turnos.forEach(t=>{
+        txt+=`  ${t.dia}/${t.mes} ${t.turno.padEnd(6)} R$${fmt(t.total)} → R$${fmt(t.porG)}/garçom`;
+        if(t.ausentes.length)txt+=` (faltou: ${t.ausentes.join(', ')})`;
+        txt+='\n';
+      });
+    }
+  }
+  copiar(txt);
+}
+
+// ── UI helpers ────────────────────────────────
+function onTurnoChange(){
+  const t=G('selTurno').value,p=G('turnoPill');
+  p.textContent=t;p.className='turno-pill '+(t==='DIA'?'dia':'noite');
+}
+function fmt(v){return(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function limpar(){G('totalInput').value='';calcular();}
+function copiar(txt){
+  if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>showToast('✓ Copiado!')).catch(()=>fb(txt));
+  else fb(txt);
+}
+function fb(txt){
+  const ta=document.createElement('textarea');ta.value=txt;ta.style.cssText='position:fixed;opacity:0';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');showToast('✓ Copiado!');}catch{alert(txt);}
+  document.body.removeChild(ta);
+}
+function showToast(msg){
+  const t=G('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(window._tt);window._tt=setTimeout(()=>t.classList.remove('show'),2200);
+}
+function popularDias(){
+  const mes=parseInt(G('selMes').value),sel=G('selDia'),cur=sel.value;
+  sel.innerHTML='';
+  const nd=new Date(2026,mes,0).getDate();
+  for(let d=1;d<=nd;d++){const o=document.createElement('option');o.value=d;o.textContent=d;sel.appendChild(o);}
+  if(cur&&parseInt(cur)<=nd)sel.value=cur;
+}
+function onMesChange(){popularDias();presentes={};detectarEquipe();}
+function onDateChange(){presentes={};detectarEquipe();}
+
+// ── Service Worker ────────────────────────────
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+
+// ── Banner iOS ────────────────────────────────
+function isIOS(){return/iphone|ipad|ipod/i.test(navigator.userAgent)&&!window.MSStream;}
+function isInStandalone(){return window.navigator.standalone===true;}
+
+// ── Init ──────────────────────────────────────
+(function(){
+  if(isIOS()&&!isInStandalone())G('installHint').classList.add('show');
+  const hoje=new Date(),mes=hoje.getMonth()+1;
+  if(mes>=7&&mes<=12)G('selMes').value=mes;
+  popularDias();
+  const nd=new Date(2026,parseInt(G('selMes').value),0).getDate();
+  G('selDia').value=Math.min(hoje.getDate(),nd);
+  TODOS.forEach(n=>{estado.acum[n]=0;presentes[n]=true;});
+  detectarEquipe();renderAcum();
+})();
+</script>
+</body>
+</html>
